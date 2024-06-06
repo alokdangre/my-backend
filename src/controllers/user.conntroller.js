@@ -1,5 +1,5 @@
 import { asyncHandler } from '../utils/asyncHandler.js'
-import { uploadOnCloudinary } from '../utils/cloudinary.js'
+import { deleteImageOnCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js'
 import jwt from 'jsonwebtoken'
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
@@ -14,9 +14,10 @@ const generateAccessAndRefreshTokens = async (userId) => {
         const refreshToken = user.generateRefreshToken()
 
         user.refreshToken = refreshToken
+
         await user.save({ validateBeforeSave: false })
 
-        return { accessToken, refreshToken }
+        return { accessToken, refreshToken} 
 
     } catch (error) {
         throw new ApiError(500, "Something went wrong while generating refresh and access token")
@@ -198,18 +199,18 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(400, "Refresh token is expired or used")
         }
 
-        const { newAccessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
+        const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
 
         return res
             .status(200)
-            .cookie("accessToken", newAccessToken, options)
-            .cookie("refreshToken", newRefreshToken, options)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
             .json(
                 new ApiResponse(
                     200,
                     {
-                        newAccessToken,
-                        newRefreshToken
+                        accessToken,
+                        refreshToken
                     },
                     "Successfully created new accessToken"
                 )
@@ -303,6 +304,12 @@ const updateAvatar = asyncHandler(async (req, res) => {
         },
         { new: true }
     ).select("-password")
+    const avatarurl = req.user.avatar
+    const deleted = await deleteImageOnCloudinary(avatarurl.slice(avatarurl.lastIndexOf('/')+1,avatarurl.lastIndexOf('.')))
+
+    if(!deleted){
+        console.log("not deleted")
+    }
 
     return res
         .status(200)
@@ -334,6 +341,12 @@ const updateCoverImage = asyncHandler(async (req, res) => {
         },
         { new: true }
     ).select("-password")
+    const coverImageurl = req.user.coverImage
+    const deleted = await deleteImageOnCloudinary(coverImageurl.slice(coverImageurl.lastIndexOf('/')+1,coverImageurl.lastIndexOf('.')))
+    
+    if(!deleted){
+        console.log("not deleted")
+    }
 
     return res
         .status(200)
@@ -402,8 +415,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         }
     ])
 
-    console.log(channel)
-
     if (!channel?.length) {
         throw new ApiError(400, "channel does not exists")
     }
@@ -448,17 +459,19 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                             ]
                         }
                     },
-                    {
-                        $addFields: {
-                            owner: {
-                                $first: "owner"
-                            }
-                        }
-                    }
+                    // {
+                    //     $addFields: {
+                    //         owner: {
+                    //             $first: "owner"
+                    //         }
+                    //     }
+                    // }
                 ]
             }
         }
     ])
+
+    console.log(user)
 
     return res
         .status(200)
