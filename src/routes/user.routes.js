@@ -13,7 +13,7 @@ import {
     updateCoverImage, 
     getUserChannelProfile, 
     getWatchHistory
-} from '../controllers/user.conntroller.js'
+} from '../controllers/user.controller.js'
 
 const router = Router()
 

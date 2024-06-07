@@ -47,6 +47,8 @@ const registerUser = asyncHandler(async (req, res) => {
         $or: [{ username }, { email }]
     })
 
+    console.log(existedUser)
+
     if (existedUser) {
         throw new ApiError(409, "user already existed")
     }
@@ -470,8 +472,6 @@ const getWatchHistory = asyncHandler(async (req, res) => {
             }
         }
     ])
-
-    console.log(user)
 
     return res
         .status(200)
