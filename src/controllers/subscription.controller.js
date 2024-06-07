@@ -12,8 +12,8 @@ const toggleSubscription = asyncHandler( async(req, res) => {
     if (!channelId?.trim()) {
         throw new ApiError(400, "channelId is missing")
     }
-        
-    if(channelId === req.user?._id){
+    
+    if(channelId === req.user?._id.toString()){
         throw new ApiError(401, "User cannot subscriber to his own channel")
     }
 
@@ -74,6 +74,47 @@ const getUserChannelSubscribers = asyncHandler( async(req, res) => {
 
     const {channelId} = req.params
 
+    if (!channelId?.trim()) {
+        throw new ApiError(400, "channelId is missing")
+    }
+
+    const subscribers = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(channelId)
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $addFields: {
+                subscriberCount: {
+                    $size: "$subscribers"
+                }
+            }
+        },
+        {
+            $project: {
+                username: 1,
+                fullname: 1,
+                avatar: 1,
+                coverImage: 1,
+                subscriberCount: 1
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, subscribers, "fetched subscribers")
+    )
     
 })
 
@@ -85,6 +126,56 @@ const getSubscribedChannels = asyncHandler( async(req, res) => {
         throw new ApiError(400, "channelId is missing")
     }
 
+    const subscribedChannel = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(subscriberId)
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedChannel",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "channel",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        username: 1,
+                                        fullname: 1,
+                                        avatar: 1,
+                                        email: 1
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $project: {
+                username: 1,
+                fullname: 1,
+                avatar: 1,
+                coverImage: 1,
+                subscribedChannel: 1,
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, subscribedChannel, "fetched all subscribed channels")
+    )
 
 })
 
