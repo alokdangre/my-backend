@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Subscription } from "../models/subscription.model.js";
 import { User } from "../models/user.model.js";
@@ -15,6 +15,10 @@ const toggleSubscription = asyncHandler( async(req, res) => {
     
     if(channelId === req.user?._id.toString()){
         throw new ApiError(401, "User cannot subscriber to his own channel")
+    }
+
+    if(isValidObjectId(channelId)) {
+        throw new ApiError(401, "Invalid id")
     }
 
     //if channel exists
@@ -78,6 +82,10 @@ const getUserChannelSubscribers = asyncHandler( async(req, res) => {
         throw new ApiError(400, "channelId is missing")
     }
 
+    if(isValidObjectId(channelId)) {
+        throw new ApiError(401, "Invalid id")
+    }
+
     const subscribers = await User.aggregate([
         {
             $match: {
@@ -124,6 +132,10 @@ const getSubscribedChannels = asyncHandler( async(req, res) => {
 
     if (!subscriberId?.trim()) {
         throw new ApiError(400, "channelId is missing")
+    }
+
+    if(isValidObjectId(subscriberId)) {
+        throw new ApiError(401, "Invalid id")
     }
 
     const subscribedChannel = await User.aggregate([
