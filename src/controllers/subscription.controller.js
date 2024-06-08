@@ -17,7 +17,7 @@ const toggleSubscription = asyncHandler( async(req, res) => {
         throw new ApiError(401, "User cannot subscriber to his own channel")
     }
 
-    if(isValidObjectId(channelId)) {
+    if(!isValidObjectId(channelId)) {
         throw new ApiError(401, "Invalid id")
     }
 
@@ -82,7 +82,7 @@ const getUserChannelSubscribers = asyncHandler( async(req, res) => {
         throw new ApiError(400, "channelId is missing")
     }
 
-    if(isValidObjectId(channelId)) {
+    if(!isValidObjectId(channelId)) {
         throw new ApiError(401, "Invalid id")
     }
 
@@ -134,7 +134,7 @@ const getSubscribedChannels = asyncHandler( async(req, res) => {
         throw new ApiError(400, "channelId is missing")
     }
 
-    if(isValidObjectId(subscriberId)) {
+    if(!isValidObjectId(subscriberId)) {
         throw new ApiError(401, "Invalid id")
     }
 

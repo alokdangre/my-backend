@@ -1,5 +1,5 @@
 import { asyncHandler } from '../utils/asyncHandler.js'
-import { deleteImageOnCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js'
+import { deleteOnCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js'
 import jwt from 'jsonwebtoken'
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
@@ -306,8 +306,10 @@ const updateAvatar = asyncHandler(async (req, res) => {
         },
         { new: true }
     ).select("-password")
+
     const avatarurl = req.user.avatar
-    const deleted = await deleteImageOnCloudinary(avatarurl.slice(avatarurl.lastIndexOf('/')+1,avatarurl.lastIndexOf('.')))
+
+    const deleted = await deleteOnCloudinary(avatarurl.slice(avatarurl.lastIndexOf('/')+1,avatarurl.lastIndexOf('.')))
 
     if(!deleted){
         console.log("not deleted")
@@ -344,7 +346,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
         { new: true }
     ).select("-password")
     const coverImageurl = req.user.coverImage
-    const deleted = await deleteImageOnCloudinary(coverImageurl.slice(coverImageurl.lastIndexOf('/')+1,coverImageurl.lastIndexOf('.')))
+    const deleted = await deleteOnCloudinary(coverImageurl.slice(coverImageurl.lastIndexOf('/')+1,coverImageurl.lastIndexOf('.')))
     
     if(!deleted){
         console.log("not deleted")
