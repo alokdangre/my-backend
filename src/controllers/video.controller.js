@@ -11,20 +11,66 @@ import { Video } from "../models/video.model.js";
 
 const getAllVideos = asyncHandler(async(req, res) => {
 
-    const {page=1, limit=10, query, sortBy="Relevance", sortType="Videos" , order="desc", userId } = req.query
+    const {page=1, limit=10, query, sortBy, sortType, userId } = req.query
 
-    //sortType: Video, Channel, //Playlist
-    //sortBy:{ 
-    //     Relevence: (closest to query), 
-    //     Upload date: (extra sort by created date [lastest to old]), 
-    //     View count: (extra sort by views)
-    // }
+    //sortBy: title , description, channel(username), duration, views,
+
+    if(req.user._id.toString() !== userId.toString()) {
+        throw new ApiError(400, "User not logged in")
+    }
 
     if(!query){
         throw new ApiError(400, "Give your query")
     }
 
+    let sortCriteria = {}
 
+    if(sortBy && sortType){
+        sortCriteria[sortBy] = sortType === "desc" ? -1 : 1
+    }
+
+    const videos = await Video.aggregate([
+        {
+            $match: {
+                $or: [
+                    { title: { $regex: "D" } },
+                    { description: { $regex: "D" } },
+                ],
+            },
+        },
+        {
+            $sort: sortCriteria
+        },
+        {
+            $skip: (parseInt(page) - 1) * parseInt(limit)
+        },
+        {
+            $limit: parseInt(limit)
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            email: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+    
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, videos, "fetched videos")
+    )
 
 })
 
