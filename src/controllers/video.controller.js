@@ -8,10 +8,11 @@ import {
     uploadOnCloudinary 
 } from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
+import { User } from "../models/user.model.js";
 
 const getAllVideos = asyncHandler(async(req, res) => {
 
-    const {page=1, limit=10, query, sortBy, sortType, userId } = req.query
+    const {page=1, limit=10, query, sortBy="createdAt", sortType, userId } = req.query
 
     //sortBy: title , description, channel(username), duration, views,
 
@@ -143,6 +144,66 @@ const getVideoById = asyncHandler(async(req, res) => {
 
     const video = await Video.findById(videoId)
 
+    const user = await User.findById(req.user?._id, { watchHistory : 1 });
+
+    if (!user){
+        throw new ApiError(404, "User not found");
+    } 
+
+    // increment count based on watchHistory
+      if (!user?.watchHistory.includes(videoId)) {
+        const videos = await Video.findByIdAndUpdate(
+            videoId,
+            {
+                $inc: { views: 1 },
+            },
+            {
+                new : true
+            }
+
+        )
+
+        const watchHistory = await User.findByIdAndUpdate(
+            req.user?._id,
+            {
+                $addToSet: {
+                    watchHistory : videoId
+                }
+            },
+            {
+                new : true
+            }
+        )
+        
+    }
+
+    const videos = await Video.aggregate([
+        {
+            $match: {
+                _id : new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            avatar: 1,
+                            fullName: 1,
+                            _id: 1
+                        }
+
+                    }
+                ]
+            }
+        },
+    ])
+
     if(!video){
         throw new ApiError(400, "Something went wrong while fetching video")
     }
@@ -150,7 +211,7 @@ const getVideoById = asyncHandler(async(req, res) => {
     return res
     .status(200)
     .json(
-        new ApiResponse(200, video, "Video details fetched successfully")
+        new ApiResponse(200, videos, "Video details fetched successfully")
     )
 
 })
@@ -158,6 +219,8 @@ const getVideoById = asyncHandler(async(req, res) => {
 const updateVideo = asyncHandler( async(req, res) => {
 
     const {videoId} = req.params
+
+    const {title, description} = req.body
 
     if(!isValidObjectId(videoId)){
         throw new ApiError(400, "Invalid params")
@@ -191,7 +254,9 @@ const updateVideo = asyncHandler( async(req, res) => {
         videoId,
         {
             $set: {
-                thumbnail: thumbnail.url
+                thumbnail: thumbnail.url,
+                title,
+                description
             }
         },
         { new: true }
