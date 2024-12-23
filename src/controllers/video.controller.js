@@ -14,7 +14,7 @@ const getAllVideos = asyncHandler(async(req, res) => {
 
     const {page=1, limit=10, query, sortBy="createdAt", sortType, userId } = req.query
 
-    //sortBy: title , description, channel(username), duration, views,
+    // sortBy: title , description, channel(username), duration, views,
 
     if(req.user._id.toString() !== userId.toString()) {
         throw new ApiError(400, "User not logged in")
